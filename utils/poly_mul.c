@@ -6,8 +6,8 @@
 #include "poly_mul.h"
 #include <NTL/ZZ_pEX.h>
 
-#define N_RES (PQS_n << 1)
-#define N_SB (PQS_n >> 2)
+#define N_RES (PQKEM_n << 1)
+#define N_SB (PQKEM_n >> 2)
 #define N_SB_RES (2*N_SB-1)
 
 //using namespace NTL;

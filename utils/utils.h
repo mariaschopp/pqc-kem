@@ -1,5 +1,5 @@
-#ifndef UTILS
-#define UTILS
+#ifndef PQKEM_UTILS
+#define PQKEM_UTILS
 
 #include <cstdint>
 

@@ -1,5 +1,5 @@
-#ifndef POLY_MUL
-#define POLY_MUL
+#ifndef PQKEM_POLY_MUL
+#define PQKEM_POLY_MUL
 
 #include "params.h"
 #include <cstdint>

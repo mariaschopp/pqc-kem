@@ -22,7 +22,7 @@ static uint32_t msb_position (uint32_t x);
 void polyw1_pack (uint8_t *r, const poly *a) {
   unsigned int i;
 
-  for(i = 0; i < PQS_n/2; ++i)
+  for(i = 0; i < PQKEM_n/2; ++i)
     r[i] = a->coeffs[2*i+0] | (a->coeffs[2*i+1] << 4);
 
 }
@@ -42,13 +42,13 @@ void polyw1_pack (uint8_t *r, const poly *a) {
 void challenge (poly &c, const uint8_t mu[CRHBYTES], polyveck &w1) {
   unsigned int i, b, pos;
   uint64_t signs;
-  uint8_t inbuf[CRHBYTES + PQS_k*POLW1_SIZE_PACKED];
+  uint8_t inbuf[CRHBYTES + PQKEM_k*POLW1_SIZE_PACKED];
   uint8_t outbuf[SHAKE256_RATE];
   keccak_state state;
 
   memcpy (inbuf, mu, CRHBYTES);
 
-  for(i = 0; i < PQS_k; ++i)
+  for(i = 0; i < PQKEM_k; ++i)
     polyw1_pack (inbuf + CRHBYTES + i*POLW1_SIZE_PACKED, &w1.polynomial[i]);
 
   shake256_absorb (&state, inbuf, sizeof(inbuf));
@@ -59,7 +59,7 @@ void challenge (poly &c, const uint8_t mu[CRHBYTES], polyveck &w1) {
     signs |= (uint64_t) outbuf[i] << 8*i;
 
   pos = 8;
-  memset (c.coeffs, 0, PQS_n * 4);
+  memset (c.coeffs, 0, PQKEM_n * 4);
 
   for(i = 196; i < 256; ++i) {
     do {
@@ -73,7 +73,7 @@ void challenge (poly &c, const uint8_t mu[CRHBYTES], polyveck &w1) {
 
     c.coeffs[i] = c.coeffs[b];
     c.coeffs[b] = 1;
-    c.coeffs[b] ^= -((uint32_t)signs & 1) & (1 ^ (PQS_q-1));
+    c.coeffs[b] ^= -((uint32_t)signs & 1) & (1 ^ (PQKEM_q-1));
     signs >>= 1;
   }
 }
@@ -93,12 +93,12 @@ void genVecl (polyvecl &vecl, int bound, uint32_t buflen, unsigned char *seed) {
     size_t i;
     poly p;
 
-    for (i=0; i<PQS_l; i++) {
+    for (i=0; i<PQKEM_l; i++) {
         rej_sample (p, bound, buflen, seed);
         vecl.polynomial[i] = p;
     }
 
-    if (bound == PQS_s) 
+    if (bound == PQKEM_s) 
         return;
 }
 
@@ -110,7 +110,7 @@ void genVecl (polyvecl &vecl, int bound, uint32_t buflen, unsigned char *seed) {
 *              is inclusive: coefficients will be in the range
 *              [-bound, bound].
 *
-* Arguments:   - c: output polynomial
+* Arguments:   - p: output polynomial
 *              - bound: range of the coefficients
 *              - buflen: buffer length for shake
 *              - seed: seed for random generation
@@ -131,7 +131,7 @@ void rej_sample (poly &p, uint32_t bound, uint32_t buflen, unsigned char *seed) 
 
     uint32_t data_offset = 0, byte_offset, i, sample;
     int32_t sign;
-    for (i=0; i<PQS_n; i++) {
+    for (i=0; i<PQKEM_n; i++) {
         // Construct the candidate coefficient
         sample = 0;
         for (byte_offset=0; byte_offset<bytes_per_coeff; byte_offset++) {
@@ -167,4 +167,47 @@ static uint32_t msb_position (uint32_t x) {
         }
     }
     return n+1;
+}
+
+/**************************************************
+* Name:        cbd
+*
+* Description: Generate a polynomial with coefficients
+*              drawn from a centered binomial distribution.
+*
+* Arguments:   - p: output polynomial
+*              - bound: range of coefficients
+*              - buflen: buffer length for shake
+*              - seed: seed for random generation
+**************************************************/
+
+void cbd (poly &p, uint32_t nu, uint32_t n_coeffs, unsigned char *seed) {
+    int bits_per_coeff = nu*2;
+    uint32_t bytes_per_coeff = (uint32_t) ceil(bits_per_coeff/8.0);
+    uint32_t buflen = bytes_per_coeff * n_coeffs;
+
+    // Initialize random data
+    shake128 (seed, SEEDBYTES, seed, SEEDBYTES);
+
+    unsigned char buffer[buflen];
+    shake128 (buffer, buflen, seed, SEEDBYTES);
+
+    uint32_t data_offset = 0, byte_offset, i;
+    int32_t sample, bit_0, bit_1;
+    for (i=0; i<PQKEM_n; i++) {
+        // Construct the candidate coefficient
+        sample = 0;
+        for (byte_offset=0; byte_offset<bytes_per_coeff; byte_offset++) {
+          for (int bit_offset=0; bit_offset<8; bit_offset++){
+            bit_0 = (buffer[data_offset+byte_offset] >> bit_offset)&1;
+            bit_offset+=1;
+            bit_1 = (buffer[data_offset+byte_offset] >> bit_offset)&1;
+            sample += bit_0 - bit_1;
+          }
+        }
+
+        p.coeffs[i] = sample;
+
+        data_offset += bytes_per_coeff;
+    }
 }

@@ -9,7 +9,7 @@
 void serialize_poly (poly &p, unsigned char *p_bytes) {
     int i, array_index = 0;
 
-    for (i = 0; i < PQS_n; i++) {
+    for (i = 0; i < PQKEM_n; i++) {
         p_bytes[array_index++] = (p.coeffs[i] & 0xff000000) >> 24;
         p_bytes[array_index++] = (p.coeffs[i] & 0xff0000) >> 16;
         p_bytes[array_index++] = (p.coeffs[i] & 0xff00) >> 8;
@@ -24,9 +24,9 @@ void serialize_secret (sk_t &sk, unsigned char *sk_bytes) {
 void serialize_polyvecl (polyvecl &pv, unsigned char *pv_bytes) {
     int i, j, array_index = 0;
 
-    for (i = 0; i < PQS_l; i++) {
+    for (i = 0; i < PQKEM_l; i++) {
         poly p = pv.polynomial[i];
-        for (j = 0; j < PQS_n; j++) {
+        for (j = 0; j < PQKEM_n; j++) {
             pv_bytes[array_index++] = (p.coeffs[j] & 0xff000000) >> 24;
             pv_bytes[array_index++] = (p.coeffs[j] & 0xff0000) >> 16;
             pv_bytes[array_index++] = (p.coeffs[j] & 0xff00) >> 8;
@@ -42,8 +42,8 @@ void deserialize_secret (sk_t &sk, unsigned char *sk_bytes) {
 void deserialize_polyvecl (polyvecl &pv, unsigned char *pv_bytes) {
     int i, j, array_index = 0;
 
-    for (i = 0; i < PQS_l; i++) {
-        for (j = 0; j < PQS_n; j++) {
+    for (i = 0; i < PQKEM_l; i++) {
+        for (j = 0; j < PQKEM_n; j++) {
             pv.polynomial[i].coeffs[j] = pv_bytes[array_index++] << 24;
             pv.polynomial[i].coeffs[j] |= pv_bytes[array_index++] << 16;
             pv.polynomial[i].coeffs[j] |= pv_bytes[array_index++] << 8;
@@ -52,31 +52,31 @@ void deserialize_polyvecl (polyvecl &pv, unsigned char *pv_bytes) {
     }
 }
 
-void serialize_verifykey (vk_t &vk, unsigned char *vk_bytes) {
+void serialize_publickey (pk_b &pk, unsigned char *pk_bytes) {
     int i, j, array_index = 0;
 
-    for (i = 0; i < PQS_k; i++) {
-        poly p = vk.t.polynomial[i];
-        for (j = 0; j < PQS_n; j++) {
-            vk_bytes[array_index++] = (p.coeffs[j] & 0xff000000) >> 24;
-            vk_bytes[array_index++] = (p.coeffs[j] & 0xff0000) >> 16;
-            vk_bytes[array_index++] = (p.coeffs[j] & 0xff00) >> 8;
-            vk_bytes[array_index++] = (p.coeffs[j] & 0xff); 
+    for (i = 0; i < PQKEM_k; i++) {
+        poly p = pk.b.polynomial[i];
+        for (j = 0; j < PQKEM_n; j++) {
+            pk_bytes[array_index++] = (p.coeffs[j] & 0xff000000) >> 24;
+            pk_bytes[array_index++] = (p.coeffs[j] & 0xff0000) >> 16;
+            pk_bytes[array_index++] = (p.coeffs[j] & 0xff00) >> 8;
+            pk_bytes[array_index++] = (p.coeffs[j] & 0xff); 
         }
     }
 }
 
-void deserialize_verifykey (vk_t &vk, unsigned char *vk_bytes) {
+void deserialize_publickey (pk_t &pk, unsigned char *pk_bytes) {
     int i, j, array_index = 0;
 
-    memset (&(vk.t), 0, sizeof(vk.t));
+    memset (&(pk.b), 0, sizeof(pk.b));
 
-    for (i = 0; i < PQS_k; i++) {
-        for (j = 0; j < PQS_n; j++) {
-            vk.t.polynomial[i].coeffs[j] = vk_bytes[array_index++] << 24;
-            vk.t.polynomial[i].coeffs[j] |= vk_bytes[array_index++] << 16;
-            vk.t.polynomial[i].coeffs[j] |= vk_bytes[array_index++] << 8;
-            vk.t.polynomial[i].coeffs[j] |= vk_bytes[array_index++];
+    for (i = 0; i < PQKEM_k; i++) {
+        for (j = 0; j < PQKEM_n; j++) {
+            pk.b.polynomial[i].coeffs[j] = pk_bytes[array_index++] << 24;
+            pk.b.polynomial[i].coeffs[j] |= pk_bytes[array_index++] << 16;
+            pk.b.polynomial[i].coeffs[j] |= pk_bytes[array_index++] << 8;
+            pk.b.polynomial[i].coeffs[j] |= pk_bytes[array_index++];
         }
     }
 }
@@ -92,16 +92,16 @@ unsigned long long pack_signed_message (unsigned char *sm, signat_t &sig, unsign
         memcpy (sm, m, mlen);
     byte_index = mlen;
 
-    for (i = 0; i < PQS_n; i++) {
+    for (i = 0; i < PQKEM_n; i++) {
         sm[byte_index++] = c.coeffs[i] >> 24;
         sm[byte_index++] = (c.coeffs[i] & 0xff0000) >> 16;
         sm[byte_index++] = (c.coeffs[i] & 0xff00) >> 8;
         sm[byte_index++] = c.coeffs[i] & 0xff;
     }
 
-    for (i = 0; i < PQS_l; i++) {
+    for (i = 0; i < PQKEM_l; i++) {
         poly p = z.polynomial[i];
-        for (j = 0; j < PQS_n; j++) {
+        for (j = 0; j < PQKEM_n; j++) {
             sm[byte_index++] = p.coeffs[j] >> 24;
             sm[byte_index++] = (p.coeffs[j] & 0xff0000) >> 16;
             sm[byte_index++] = (p.coeffs[j] & 0xff00) >> 8;
@@ -123,15 +123,15 @@ unsigned long long unpack_signed_message (unsigned char *sm, signat_t &sig, unsi
     memcpy (m, sm, (size_t) mlen);
     byte_index = mlen;
 
-    for (i = 0; i < PQS_n; i++) {
+    for (i = 0; i < PQKEM_n; i++) {
         sig.c.coeffs[i] = sm[byte_index++] << 24;
         sig.c.coeffs[i] |= sm[byte_index++] << 16;
         sig.c.coeffs[i] |= sm[byte_index++] << 8;
         sig.c.coeffs[i] |= sm[byte_index++];
     }
 
-    for (i = 0; i < PQS_l; i++) {
-        for (j = 0; j < PQS_n; j++) {
+    for (i = 0; i < PQKEM_l; i++) {
+        for (j = 0; j < PQKEM_n; j++) {
             sig.z.polynomial[i].coeffs[j] = sm[byte_index++] << 24;
             sig.z.polynomial[i].coeffs[j] |= sm[byte_index++] << 16;
             sig.z.polynomial[i].coeffs[j] |= sm[byte_index++] << 8;
