@@ -6,53 +6,19 @@
 // Serialize and deserialize functions. 
 // There is no way to verify that arrays are large enough so it is up to the calling function to pass in sufficiently sized arrays.
 
-void serialize_poly (poly &p, unsigned char *p_bytes) {
-    int i, array_index = 0;
-
-    for (i = 0; i < PQKEM_n; i++) {
-        p_bytes[array_index++] = (p.coeffs[i] & 0xff000000) >> 24;
-        p_bytes[array_index++] = (p.coeffs[i] & 0xff0000) >> 16;
-        p_bytes[array_index++] = (p.coeffs[i] & 0xff00) >> 8;
-        p_bytes[array_index++] = (p.coeffs[i] & 0xff);
-    }
+void serialize_secretkey (sk_t &sk, unsigned char *sk_bytes) {
+    serialize_polyvecl (sk.s, sk_bytes, PQKEM_nu);
+    memcpy (sk_bytes+sizeof(polyvecl), sk.H_pk, 32);
+    memcpy (sk_bytes+sizeof(polyvecl)+32, sk.r, 32);
 }
 
-void serialize_secret (sk_t &sk, unsigned char *sk_bytes) {
-    serialize_polyvecl (sk.s, sk_bytes);
+void deserialize_secretkey (sk_t &sk, unsigned char *sk_bytes) {
+    deserialize_polyvecl (sk.s, sk_bytes, PQKEM_nu);
+    memcpy (sk.H_pk, sk_bytes+sizeof(polyvecl), 32);
+    memcpy (sk.r, sk_bytes+sizeof(polyvecl)+32, 32);
 }
 
-void serialize_polyvecl (polyvecl &pv, unsigned char *pv_bytes) {
-    int i, j, array_index = 0;
-
-    for (i = 0; i < PQKEM_l; i++) {
-        poly p = pv.polynomial[i];
-        for (j = 0; j < PQKEM_n; j++) {
-            pv_bytes[array_index++] = (p.coeffs[j] & 0xff000000) >> 24;
-            pv_bytes[array_index++] = (p.coeffs[j] & 0xff0000) >> 16;
-            pv_bytes[array_index++] = (p.coeffs[j] & 0xff00) >> 8;
-            pv_bytes[array_index++] = (p.coeffs[j] & 0xff);
-        }
-    }
-}
-
-void deserialize_secret (sk_t &sk, unsigned char *sk_bytes) {
-    deserialize_polyvecl (sk.s, sk_bytes);
-}
-
-void deserialize_polyvecl (polyvecl &pv, unsigned char *pv_bytes) {
-    int i, j, array_index = 0;
-
-    for (i = 0; i < PQKEM_l; i++) {
-        for (j = 0; j < PQKEM_n; j++) {
-            pv.polynomial[i].coeffs[j] = pv_bytes[array_index++] << 24;
-            pv.polynomial[i].coeffs[j] |= pv_bytes[array_index++] << 16;
-            pv.polynomial[i].coeffs[j] |= pv_bytes[array_index++] << 8;
-            pv.polynomial[i].coeffs[j] |= pv_bytes[array_index++];
-        }
-    }
-}
-
-void serialize_publickey (pk_b &pk, unsigned char *pk_bytes) {
+void serialize_publickey (pk_t &pk, unsigned char *pk_bytes) {
     int i, j, array_index = 0;
 
     for (i = 0; i < PQKEM_k; i++) {
@@ -64,6 +30,8 @@ void serialize_publickey (pk_b &pk, unsigned char *pk_bytes) {
             pk_bytes[array_index++] = (p.coeffs[j] & 0xff); 
         }
     }
+
+    serialize_polyvecl (pk.b, pk_bytes+sizeof(polymatkl), PQKEM_mu);
 }
 
 void deserialize_publickey (pk_t &pk, unsigned char *pk_bytes) {
@@ -79,8 +47,10 @@ void deserialize_publickey (pk_t &pk, unsigned char *pk_bytes) {
             pk.b.polynomial[i].coeffs[j] |= pk_bytes[array_index++];
         }
     }
-}
 
+    deserialize_polyvecl (pk.b, pk_bytes+sizeof(polymatkl), PQKEM_mu);
+}
+/*
 unsigned long long pack_signed_message (unsigned char *sm, signat_t &sig, unsigned char *m, unsigned long long mlen) {
     poly c = sig.c;
     polyvecl z = sig.z;
@@ -142,6 +112,7 @@ unsigned long long unpack_signed_message (unsigned char *sm, signat_t &sig, unsi
     return byte_index - SIGNATUREBYTES;
 }
 
+
 void printBstr(char *lead, unsigned char *bstr, unsigned int blen)
 {
 	unsigned int i;
@@ -159,3 +130,4 @@ void printBstr(char *lead, unsigned char *bstr, unsigned int blen)
 
 	printf("\n\n");
 }
+*/

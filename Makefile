@@ -5,7 +5,7 @@ LDLIBS   = -lcrypto
 OBJS     = keygen.o encaps.o decaps.o
 TEST_OBJ = test/cpucycles.o
 KAT_OBJ  = KAT/rng.o KAT/api.o
-UTIL_OBJ = utils/arith.o utils/core.o utils/fips202.o utils/poly_mul.o utils/randombytes.o utils/serialize_common.o #utils/serialize.o
+UTIL_OBJ = utils/arith.o utils/core.o utils/fips202.o utils/poly_mul.o utils/randombytes.o utils/serialize_common.o utils/serialize.o
 UTIL_HDR = utils/params.h utils/matrix_A.h utils/utils.h
 
 INSTALL_PATH?=/usr/local
@@ -18,7 +18,7 @@ all: $(OBJS) $(UTIL_OBJ)
 #	cd KAT; ./PQCgenKAT_kem
 
 test: $(TEST_OBJ) test/pqkem_test
-	./test/pqs_test
+	./test/pqkem_test
 
 # if library has been installed this version can be used
 #test: $(TEST_OBJ) test/pqkem_test -lpqkem
@@ -53,7 +53,7 @@ utils/%.o: utils/%.c utils/%.h $(UTIL_HDR)
 
 # TESTS
 
-test/pqs_test: $(OBJS) $(UTIL_OBJ) $(TEST_OBJ) test/pqkem_test.c test/pqkem_test.h test/test_config.h
+test/pqkem_test: $(OBJS) $(UTIL_OBJ) $(TEST_OBJ) test/pqkem_test.c test/pqkem_test.h test/test_config.h
 	$(CC) $(OBJS) $(UTIL_OBJ) $(TEST_OBJ) test/pqkem_test.c -o test/pqkem_test
 
 # KAT

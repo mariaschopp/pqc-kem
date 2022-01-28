@@ -24,9 +24,6 @@ void keygen (sk_t &sk, pk_t &pk) {
     #endif
 }
 
-// ALL FUNCTIONS BELOW DERIVED FROM SIGNATURE
-// TODO: merge
-
 // Generate keypair as byte arrays
 int keygen_bytes (unsigned char *sk, unsigned char *pk) {
     sk_t sk_obj;

@@ -1,6 +1,6 @@
 #include "decaps.h"
 
-void decaps(pk_t pk, sk_t sk, ctxt_t ctxt){
+void decaps(pk_t pk, sk_t sk, ctxt_t ctxt, unsigned char *K){
     // Calculate u.
     poly u;
     calculate_u (u, ctxt.b_p, sk.s);
@@ -9,11 +9,12 @@ void decaps(pk_t pk, sk_t sk, ctxt_t ctxt){
     poly m_1_p;
     calculate_m_1_p (m_1_p, u);
 
-    // TODO
     // Hash m and hash of pk into K_1_p (r_1_p appears unused).
     //unsigned char* r_1_p[32];
     unsigned char m_cat_H_pk[64];
-    //memcpy (m_cat_H_pk, m_1_p, 32);
+    unsigned char m_1_p_bytes[sizeof(poly)];
+    serialize_poly (m_1_p, m_1_p_bytes, sizeof(poly));
+    memcpy (m_cat_H_pk, m_1_p_bytes, 32);
     unsigned char pk_bytes[PUBLICKEYBYTES];
     serialize_publickey (pk, pk_bytes);
     shake256 (m_cat_H_pk+32, 32, pk_bytes, PUBLICKEYBYTES);
@@ -34,25 +35,31 @@ void decaps(pk_t pk, sk_t sk, ctxt_t ctxt){
 
     // Calculate c_1_p.
     poly c_1_p;
+    memset (&c_1_p, 0, sizeof(poly));
     calculate_c_1_p (c_1_p, u_1_p, m_1_p);
 
     // Validate and calculate K.
-    // TODO
-    /*
-    char* K[32];
+    unsigned char c_p_bytes[32];
+    serialize_poly(ctxt.c_p, c_p_bytes, 32);
+    unsigned char Kvr_cat_H_c_p[64];
+    shake256 (Kvr_cat_H_c_p+32, 32, c_p_bytes, sizeof(poly));
+    
+    // As a default, write K_1_p to the buffer.
+    memcpy (Kvr_cat_H_c_p, K_1_p, 32);
+
+    // If validation fails, overwrite K_1_p with r.
     for (int i=0; i<PQKEM_n; i++) {
-        if (c_1_p.coeffs[i] != c_p.coeffs[i]) {
-            K = shake256();
-            return K;
+        if (c_1_p.coeffs[i] != ctxt.c_p.coeffs[i]) {
+            memcpy (Kvr_cat_H_c_p, sk.r, 32);
         }
-    } else {
-        return ;
     }
-    */
+
+    // Hash the buffer to K.
+    shake256 (K, 32, Kvr_cat_H_c_p, 64);
 }
 
 
-void calculate_u (poly u, polyvecl b_p, polyvecl s) {
+void calculate_u (poly &u, polyvecl &b_p, polyvecl &s) {
     poly acc;
     for (int l=0; l<PQKEM_l; l++){
         MULT_POLYPOLY(b_p.polynomial[l], s.polynomial[l], acc, PQKEM_n, PQKEM_p);
@@ -60,11 +67,11 @@ void calculate_u (poly u, polyvecl b_p, polyvecl s) {
     }
 }
 
-void calculate_m_1_p (poly m_1_p, poly u){
-    // TODO
+void calculate_m_1_p (poly &m_1_p, poly &u){
+    // TODO (similar operations to calculate c_p in encaps)
 }
 
-void generate_s_1_p (polyvecl s_1_p){
+void generate_s_1_p (polyvecl &s_1_p){
     unsigned char seed[SEEDBYTES];
     randombytes (seed, SEEDBYTES);
     for (int l_i=0; l_i<PQKEM_l; l_i++) {
@@ -74,11 +81,12 @@ void generate_s_1_p (polyvecl s_1_p){
     }
 }
 
-void calculate_b_1_p (polyveck &b_1_p, polymatkl &A, polyvecl &s_1_p){
-    // Multiply AT and s.
+void calculate_b_1_p (polyvecl &b_1_p, polymatkl &A, polyvecl &s_1_p){
+    // Multiply AT and s_1_p.
     polymatkl AT;
+    polyveck b_1_p_temp;
     transpose_polymatll(AT, A);
-    mult_MatVecl(b_1_p, AT, s_1_p);
+    mult_MatVecl(b_1_p_temp, AT, s_1_p);
 
     // Add h1 and round each coefficient in each polynomial.
     uint32_t i, j;
@@ -89,10 +97,14 @@ void calculate_b_1_p (polyveck &b_1_p, polymatkl &A, polyvecl &s_1_p){
     }
 }
 
-void calculate_u_1_p (poly u_1_p, polyvecl b, polyvecl s_1_p){
-
+void calculate_u_1_p (poly &u_1_p, polyvecl &b, polyvecl &s_1_p){
+    poly acc;
+    for (int l=0; l<PQKEM_l; l++){
+        MULT_POLYPOLY(b.polynomial[l], s_1_p.polynomial[l], acc, PQKEM_n, PQKEM_p);
+        add_PolyPoly (u_1_p, u_1_p, acc);
+    }
 }
 
-void calculate_c_1_p (poly u_1_p){
-
+void calculate_c_1_p (poly &c_1_p, poly &u_1_p, poly &m_1_p){
+    // See calculate_c_p in encaps.
 }
